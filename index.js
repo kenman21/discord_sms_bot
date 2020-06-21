@@ -12,41 +12,42 @@ const bot = new Discord.Client();
 var client = new twilio(accountSid, authToken);
 
 bot.on('message', (message) => {
+  if(message.author.bot) return;
   if (message.content[0] === '!') {
-    const messageContent = message.content.slice(1).toLowerCase();
+    const messageContent = message.content.slice(1);
     const splitContent = messageContent.split(",");
 
-    if (splitContent[0] === 'SMSBot') {
+    if (splitContent[0] === 'smsbot') {
       let recipient = splitContent[1].trim();
-      let message = splitContent[2].trim();
+      let sms = splitContent[2].trim();
       let raiderRole = message.guild.roles.cache.find(role => role.name === recipient);
 
-      if (recipient === undefined || message === undefined) return;
+      if (recipient === undefined || sms === undefined) return;
 
       if (raiderRole === undefined) {
         if (phoneBook[recipient] !== undefined) {
-          callGuildie(recipient, message);
+          callGuildie(recipient, sms);
         }
       } else {
         message.guild.members.fetch().then(fetchedMembers => {
           let raiders = [];
-          raiderNamesByRole(raiders, fetchedMembers);
-          callRaiders(raiders, message)
-        }
-      });
+          raiderNamesByRole(raiders, fetchedMembers, raiderRole);
+          callRaiders(raiders, sms)
+        })
+      };
+    } else if (splitContent[0] === 'smsbot-help') {
+      message.channel.send('SMSBot responds to the following:');
+      message.channel.send('!SMSBot, DISCORD_ROLE_HERE , SMS_MESSAGE_HERE');
+      message.channel.send('*OR*');
+      message.channel.send('!SMSBot, DISCORD_MEMBER_HERE , SMS_MESSAGE_HERE');
     }
-  } else if (splitContent[0] === 'SMSBot-help') {
-    message.channel.sendMessage('SMSBot responds to the following:');
-    message.channel.sendMessage('!SMSBot,DISCORD_ROLE_HERE,SMS_MESSAGE_HERE');
-    message.channel.sendMessage('*OR*');
-    message.channel.sendMessage('!SMSBot,DISCORD_MEMBER_HERE,SMS_MESSAGE_HERE');
   }
 });
 
-let callGuildie = (recipient, message) => {
+let callGuildie = (recipient, sms) => {
   client.messages
   .create({
-     body: message,
+     body: sms,
      from: twilioNumber,
      to: phoneBook[recipient]
    })
@@ -54,23 +55,23 @@ let callGuildie = (recipient, message) => {
   .catch(err => console.log(err));
 };
 
-let callRaiders = (raiders, message) => {
-  Promise.all(
-    raiders.map(raider => {
-      return twilio.messages.create({
-        to: phoneBook[raider],
-        from: messageService,
-        body: message
-      });
-    })
-  )
-    .then(messages => {
-      console.log('Messages sent!');
-    })
-    .catch(err => console.error(err));
+let callRaiders = (raiders, sms) => {
+  // Promise.all(
+  //   raiders.map(raider => {
+  //     return twilio.messages.create({
+  //       to: phoneBook[raider],
+  //       from: messageService,
+  //       body: sms
+  //     });
+  //   })
+  // )
+  //   .then(messages => {
+  //     console.log('Messages sent!');
+  //   })
+  //   .catch(err => console.error(err));
 };
 
-let raiderNamesByRole = (accum, fetchedMembers) => {
+let raiderNamesByRole = (accum, fetchedMembers, raiderRole) => {
   // Start a collection of raiders
   fetchedMembers.forEach(gmember => {
     if (gmember.roles.cache.has(raiderRole.id)) {
