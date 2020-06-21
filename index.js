@@ -18,12 +18,15 @@ bot.on('message', (message) => {
     const splitContent = messageContent.split(",");
 
     if (splitContent[0] === 'smsbot') {
-      let recipient = splitContent[1].trim();
-      let sms = splitContent[2].trim();
-      let raiderRole = message.guild.roles.cache.find(role => role.name === recipient);
+      let recipient = splitContent[1];
+      let sms = splitContent[2];
 
       if (recipient === undefined || sms === undefined) return;
 
+      let raiderRole = message.guild.roles.cache.find(role => role.name === recipient);
+      recipient = recipient.trim();
+      sms = sms.trim();
+      
       if (raiderRole === undefined) {
         if (phoneBook[recipient] !== undefined) {
           callGuildie(recipient, sms);
@@ -32,7 +35,7 @@ bot.on('message', (message) => {
         message.guild.members.fetch().then(fetchedMembers => {
           let raiders = [];
           raiderNamesByRole(raiders, fetchedMembers, raiderRole);
-          callRaiders(raiders, sms)
+          callRaiders(message, raiders, sms)
         })
       };
     } else if (splitContent[0] === 'smsbot-help') {
@@ -55,7 +58,10 @@ let callGuildie = (recipient, sms) => {
   .catch(err => console.log(err));
 };
 
-let callRaiders = (raiders, sms) => {
+let callRaiders = (message, raiders, sms) => {
+  raiders.forEach(raider => {
+    message.channel.send(`Sending ${sms} to Raider ${raider} with number ${phoneBook[raider]}`);
+  })
   // Promise.all(
   //   raiders.map(raider => {
   //     return twilio.messages.create({
@@ -75,7 +81,7 @@ let raiderNamesByRole = (accum, fetchedMembers, raiderRole) => {
   // Start a collection of raiders
   fetchedMembers.forEach(gmember => {
     if (gmember.roles.cache.has(raiderRole.id)) {
-      accum.push(gmember.nickname.toLowerCase());
+      accum.push(gmember.nickname );
     };
   });
 }
